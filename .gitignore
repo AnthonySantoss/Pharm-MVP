@@ -1,0 +1,7 @@
+# Ignore agent files
+*.agent.md
+*.instructions.md
+*.prompt.md
+SKILL.md
+copilot-instructions.md
+AGENTS.md
