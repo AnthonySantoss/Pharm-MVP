@@ -1,21 +1,55 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import pandas as pd
-from pathlib import Path
 
-app = FastAPI()
+from app.api import auth, medications, interactions, admin
+from app.services.ml_model import init_model
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    print("Initializing ML model...")
+    init_model()
+    print("ML model loaded successfully")
+    yield
+    # Shutdown
+    print("Shutting down...")
+
+
+app = FastAPI(
+    title="PharmIA API",
+    description="Drug Interaction Analysis API with ML-powered severity classification",
+    version="1.0.0",
+    lifespan=lifespan,
+)
+
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # In production, specify exact origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-DATA_PATH = Path("/app/app/../../data/db_drug_interactions.csv").resolve()
+# Include routers
+app.include_router(auth.router, prefix="/api")
+app.include_router(medications.router, prefix="/api")
+app.include_router(interactions.router, prefix="/api")
+app.include_router(admin.router, prefix="/api")
 
-@app.get("/api/interactions")
-def get_interactions():
-    df = pd.read_csv(DATA_PATH)
-    return df.sample(10).to_dict(orient="records")
+
+@app.get("/")
+def root():
+    return {
+        "name": "PharmIA API",
+        "version": "1.0.0",
+        "description": "Drug Interaction Analysis API"
+    }
+
+
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}

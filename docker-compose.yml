@@ -1,19 +1,25 @@
-# Adaptado do pharm-mvp
-version: '3.8'
 services:
   backend:
-    build: ./backend
-    volumes:
-      - ./backend:/app
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
-    environment:
-      - PYTHONUNBUFFERED=1
-  frontend:
-    build: ./frontend
     volumes:
-      - ./frontend:/app
+      - ./backend:/app
+      - ./data:/app/data:ro
+    environment:
+      - DATABASE_URL=sqlite:///./pharmia.db
+      - PYTHONUNBUFFERED=1
+    working_dir: /app
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     ports:
-      - "3000:80"
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api
     depends_on:
       - backend
