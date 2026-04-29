@@ -28,7 +28,9 @@ class HistoryEntry(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, nullable=False)
     drug1 = Column(String, nullable=False)
+    drug1_dcb = Column(String, nullable=True)
     drug2 = Column(String, nullable=False)
+    drug2_dcb = Column(String, nullable=True)
     severity = Column(String, nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
 

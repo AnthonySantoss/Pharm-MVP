@@ -3,13 +3,15 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import auth, medications, interactions, admin
+from app.api import auth, medications, interactions, admin, models
+from app.database.database import init_db
 from app.services.ml_model import init_model
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
+    init_db()
     print("Initializing ML model...")
     init_model()
     print("ML model loaded successfully")
@@ -39,6 +41,7 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(medications.router, prefix="/api")
 app.include_router(interactions.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
+app.include_router(models.router, prefix="/api")
 
 
 @app.get("/")

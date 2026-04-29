@@ -66,7 +66,7 @@ export default function DashboardPage() {
 
       {/* Quick actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link href="/dashboard/interactions">
+        <Link href="/interactions">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer border-primary/20 hover:border-primary">
             <CardContent className="p-6 flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -82,7 +82,7 @@ export default function DashboardPage() {
         </Link>
 
         {user?.role !== "patient" && (
-          <Link href="/dashboard/analytics">
+          <Link href="/analytics">
             <Card className="hover:shadow-lg transition-shadow cursor-pointer border-secondary/20 hover:border-secondary">
               <CardContent className="p-6 flex items-center gap-4">
                 <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center">
@@ -98,7 +98,7 @@ export default function DashboardPage() {
           </Link>
         )}
 
-        <Link href="/dashboard/history">
+        <Link href="/history">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer">
             <CardContent className="p-6 flex items-center gap-4">
               <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center">
@@ -231,7 +231,7 @@ export default function DashboardPage() {
               <Pill className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p>Nenhuma consulta ainda</p>
               <Link
-                href="/dashboard/interactions"
+                href="/interactions"
                 className="text-primary hover:underline text-sm"
               >
                 Fazer primeira consulta

@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { User } from "@/types";
+import type { User } from "@/types";
 
 interface AuthContextType {
   user: User | null;
@@ -10,7 +10,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string, role: "pharmacist" | "patient") => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -42,13 +42,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(response.user);
   };
 
-  const register = async (email: string, password: string, name: string, role: "pharmacist" | "patient") => {
+  const registerUser = async (email: string, password: string, name: string, role: "pharmacist" | "patient") => {
     const response = await api.register(email, password, name, role);
     setUser(response.user);
   };
 
-  const logout = () => {
-    api.logout();
+  const logout = async () => {
+    await api.logout();
     setUser(null);
   };
 
@@ -59,7 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading,
         isAuthenticated: !!user,
         login,
-        register,
+        register: registerUser,
         logout,
       }}
     >

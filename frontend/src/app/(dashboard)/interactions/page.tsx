@@ -10,12 +10,15 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/components/providers/auth-provider";
 import { api } from "@/lib/api";
+import type { Drug } from "@/types";
 
-interface Drug {
+interface InteractionResult {
   drug1: string;
+  drug1_dcb: string;
   drug2: string;
+  drug2_dcb: string;
   severity: string;
-  description: string;
+  description?: string;
   confidence?: number;
 }
 
@@ -24,10 +27,10 @@ export default function InteractionsPage() {
   const { isAuthenticated } = useAuth();
   const [drug1, setDrug1] = useState("");
   const [drug2, setDrug2] = useState("");
-  const [drugs, setDrugs] = useState<string[]>([]);
+  const [drugs, setDrugs] = useState<Drug[]>([]);
   const [isLoadingDrugs, setIsLoadingDrugs] = useState(true);
   const [isChecking, setIsChecking] = useState(false);
-  const [result, setResult] = useState<Drug | null>(null);
+  const [result, setResult] = useState<InteractionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -155,8 +158,8 @@ export default function InteractionsPage() {
                 >
                   <option value="">Selecione...</option>
                   {drugs.map((drug) => (
-                    <option key={drug} value={drug}>
-                      {drug}
+                    <option key={drug.inn} value={drug.inn}>
+                      {drug.dcb || drug.inn}
                     </option>
                   ))}
                 </select>
@@ -177,8 +180,8 @@ export default function InteractionsPage() {
                 >
                   <option value="">Selecione...</option>
                   {drugs.map((drug) => (
-                    <option key={drug} value={drug} disabled={drug === drug1}>
-                      {drug}
+                    <option key={drug.inn} value={drug.inn} disabled={drug.inn === drug1}>
+                      {drug.dcb || drug.inn}
                     </option>
                   ))}
                 </select>
@@ -221,7 +224,7 @@ export default function InteractionsPage() {
               </Badge>
             </div>
             <CardDescription>
-              Interação entre {result.drug1} e {result.drug2}
+              Interação entre {result.drug1_dcb} ({result.drug1}) e {result.drug2_dcb} ({result.drug2})
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -245,7 +248,7 @@ export default function InteractionsPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => router.push("/dashboard/history")}
+                onClick={() => router.push("/history")}
               >
                 Ver Histórico
               </Button>

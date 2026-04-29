@@ -1,8 +1,12 @@
+import type { TokenResponse, InteractionCheck, HistoryEntry, Stats, ModelsCompare, User, Drug } from "@/types";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
+type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
+
 interface RequestOptions {
-  method?: "GET" | "POST" | "PUT" | "DELETE";
-  body?: unknown;
+  method?: HttpMethod;
+  body?: Record<string, unknown>;
   headers?: Record<string, string>;
 }
 
@@ -42,30 +46,40 @@ class ApiClient {
   private async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      ...options.headers,
+      ...(options.headers || {}),
     };
 
     if (this.accessToken) {
       headers["Authorization"] = `Bearer ${this.accessToken}`;
     }
 
-    const response = await fetch(`${API_URL}${endpoint}`, {
+    const fetchOptions: RequestInit = {
       method: options.method || "GET",
       headers,
-      body: options.body ? JSON.stringify(options.body) : undefined,
-    });
+    };
+
+    if (options.body) {
+      fetchOptions.body = JSON.stringify(options.body);
+    }
+
+    const response = await fetch(`${API_URL}${endpoint}`, fetchOptions);
 
     if (response.status === 401 && this.refreshToken) {
-      await this.refreshAccessToken();
-      return this.request(endpoint, options);
+      try {
+        await this.refreshAccessToken();
+        return this.request(endpoint, options);
+      } catch {
+        this.clearTokens();
+        throw new Error("Sessão expirada");
+      }
     }
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: "Erro desconhecido" }));
-      throw new Error(error.detail || "Erro na requisição");
+      const errorData = await response.json().catch(() => ({ detail: "Erro desconhecido" }));
+      throw new Error(errorData.detail || `HTTP ${response.status}`);
     }
 
-    return response.json();
+    return response.json() as Promise<T>;
   }
 
   private async refreshAccessToken() {
@@ -77,7 +91,7 @@ class ApiClient {
     const response = await fetch(`${API_URL}/auth/refresh`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken: this.refreshToken }),
+      body: JSON.stringify({ refresh_token: this.refreshToken }),
     });
 
     if (!response.ok) {
@@ -85,26 +99,25 @@ class ApiClient {
       throw new Error("Sessão expirada");
     }
 
-    const data = await response.json();
-    this.setTokens(data.accessToken, this.refreshToken);
+    const data: TokenResponse = await response.json() as TokenResponse;
+    this.setTokens(data.access_token, data.refresh_token);
   }
 
-  // Auth endpoints
-  async login(email: string, password: string) {
-    const data = await this.request<{ user: any; accessToken: string; refreshToken: string }>("/auth/login", {
+  async login(email: string, password: string): Promise<TokenResponse> {
+    const data = await this.request<TokenResponse>("/auth/login", {
       method: "POST",
       body: { email, password },
     });
-    this.setTokens(data.accessToken, data.refreshToken);
+    this.setTokens(data.access_token, data.refresh_token);
     return data;
   }
 
-  async register(email: string, password: string, name: string, role: "pharmacist" | "patient") {
-    const data = await this.request<{ user: any; accessToken: string; refreshToken: string }>("/auth/register", {
+  async register(email: string, password: string, name: string, role: "pharmacist" | "patient"): Promise<TokenResponse> {
+    const data = await this.request<TokenResponse>("/auth/register", {
       method: "POST",
       body: { email, password, name, role },
     });
-    this.setTokens(data.accessToken, data.refreshToken);
+    this.setTokens(data.access_token, data.refresh_token);
     return data;
   }
 
@@ -116,55 +129,63 @@ class ApiClient {
     }
   }
 
-  async getMe() {
-    return this.request<any>("/auth/me");
+  async getMe(): Promise<User> {
+    return this.request<User>("/auth/me");
   }
 
-  // Drugs endpoints
-  async searchDrugs(query: string) {
-    return this.request<{ drugs: string[] }>(`/medicamentos?search=${encodeURIComponent(query)}`);
+  async getAllDrugs(): Promise<{ drugs: Drug[]; count: number }> {
+    return this.request<{ drugs: Drug[]; count: number }>("/medicamentos/all");
   }
 
-  async getAllDrugs() {
-    return this.request<{ drugs: string[] }>("/medicamentos");
+  async searchDrugs(query: string): Promise<{ drugs: Drug[]; count: number }> {
+    return this.request<{ drugs: Drug[]; count: number }>(
+      `/medicamentos?search=${encodeURIComponent(query)}`
+    );
   }
 
-  // Interactions endpoints
-  async checkInteraction(drug1: string, drug2: string) {
-    return this.request<{
-      drug1: string;
-      drug2: string;
-      severity: string;
-      description: string;
-      confidence?: number;
-    }>("/interactions/check", {
+  async checkInteraction(drug1: string, drug2: string): Promise<InteractionCheck> {
+    return this.request<InteractionCheck>("/interactions/check", {
       method: "POST",
       body: { drug1, drug2 },
     });
   }
 
-  async getInteractionsHistory() {
-    return this.request<any[]>("/history");
+  async getInteractionsHistory(): Promise<HistoryEntry[]> {
+    return this.request<HistoryEntry[]>("/interactions/history");
   }
 
-  async getInteraction(id: string) {
-    return this.request<any>(`/interactions/${id}`);
+  async getStats(): Promise<Stats> {
+    return this.request<Stats>("/interactions/stats");
   }
 
-  // Admin endpoints
-  async getStats() {
-    return this.request<any>("/admin/stats");
+  async getModelsCompare(): Promise<ModelsCompare> {
+    return this.request<ModelsCompare>("/models/compare");
   }
 
-  async getAllUsers() {
-    return this.request<any[]>("/admin/users");
+  async getAllUsers(): Promise<User[]> {
+    return this.request<User[]>("/admin/users");
   }
 
-  async updateUserRole(userId: string, role: string) {
-    return this.request<any>(`/admin/users/${userId}`, {
+  async updateUserRole(userId: number, role: string): Promise<User> {
+    return this.request<User>(`/admin/users/${userId}`, {
       method: "PUT",
       body: { role },
     });
+  }
+
+  async deleteUser(userId: number): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/admin/users/${userId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async getAdminStats(): Promise<{
+    totalUsers: number;
+    pharmacists: number;
+    patients: number;
+    admins: number;
+  }> {
+    return this.request("/admin/stats");
   }
 }
 

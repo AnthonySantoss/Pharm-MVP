@@ -6,8 +6,10 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend:/app
+      - ./backend/app:/app/app:ro
+      - ./backend/requirements.txt:/app/requirements.txt:ro
       - ./data:/app/data:ro
+      - pharmia-db:/app
     environment:
       - DATABASE_URL=sqlite:///./pharmia.db
       - PYTHONUNBUFFERED=1
@@ -21,5 +23,6 @@ services:
       - "3000:3000"
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000/api
-    depends_on:
-      - backend
+
+volumes:
+  pharmia-db:

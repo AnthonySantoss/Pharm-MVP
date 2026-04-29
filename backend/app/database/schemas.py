@@ -26,7 +26,9 @@ class UserResponse(UserBase):
 class HistoryEntryCreate(BaseModel):
     user_id: str
     drug1: str
+    drug1_dcb: Optional[str] = None
     drug2: str
+    drug2_dcb: Optional[str] = None
     severity: str
 
 

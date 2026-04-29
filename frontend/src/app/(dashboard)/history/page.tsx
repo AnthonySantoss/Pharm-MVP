@@ -12,7 +12,9 @@ import { api } from "@/lib/api";
 interface HistoryItem {
   id: string;
   drug1: string;
+  drug1_dcb: string;
   drug2: string;
+  drug2_dcb: string;
   severity: string;
   timestamp: string;
 }
@@ -96,9 +98,9 @@ export default function HistoryPage() {
                       <Pill className="w-6 h-6 text-primary" />
                     </div>
                     <div>
-                      <p className="font-medium text-foreground">
-                        {item.drug1} + {item.drug2}
-                      </p>
+<p className="font-medium text-foreground">
+                          {item.drug1_dcb} + {item.drug2_dcb}
+                        </p>
                       <p className="text-sm text-muted-foreground">
                         {new Date(item.timestamp).toLocaleDateString("pt-BR", {
                           day: "2-digit",
@@ -126,7 +128,7 @@ export default function HistoryPage() {
                 Comece a verificar interações medicamentosas
               </p>
               <button
-                onClick={() => router.push("/dashboard/interactions")}
+                onClick={() => router.push("/interactions")}
                 className="text-primary hover:underline font-medium"
               >
                 Fazer primeira consulta

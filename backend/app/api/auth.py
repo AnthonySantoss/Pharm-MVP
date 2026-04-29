@@ -18,6 +18,7 @@ from app.database.database import (
     get_db,
     get_password_hash,
     init_db,
+    verify_password,
 )
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -58,10 +59,7 @@ class RefreshRequest(BaseModel):
     refresh_token: str
 
 
-# Initialize database on startup
-@router.on_event("startup")
-async def startup():
-    init_db()
+# Router configuration (no on_event - startup handled in main.py lifespan)
 
 
 # Register

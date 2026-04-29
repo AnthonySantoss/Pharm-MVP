@@ -22,10 +22,10 @@ import {
 
 const navItems = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", roles: ["admin", "pharmacist", "patient"] },
-  { href: "/dashboard/interactions", icon: Pill, label: "Interações", roles: ["admin", "pharmacist", "patient"] },
-  { href: "/dashboard/history", icon: History, label: "Histórico", roles: ["admin", "pharmacist", "patient"] },
-  { href: "/dashboard/analytics", icon: BarChart3, label: "Análises", roles: ["admin", "pharmacist"] },
-  { href: "/dashboard/admin", icon: Users, label: "Usuários", roles: ["admin"] },
+  { href: "/interactions", icon: Pill, label: "Interações", roles: ["admin", "pharmacist", "patient"] },
+  { href: "/history", icon: History, label: "Histórico", roles: ["admin", "pharmacist", "patient"] },
+  { href: "/analytics", icon: BarChart3, label: "Análises", roles: ["admin", "pharmacist"] },
+  { href: "/admin", icon: Users, label: "Usuários", roles: ["admin"] },
 ];
 
 interface DashboardLayoutProps {
