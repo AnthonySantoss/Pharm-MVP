@@ -1,6 +1,7 @@
 import re
 import threading
 from pathlib import Path
+from typing import Optional
 
 import joblib
 import pandas as pd
@@ -106,6 +107,17 @@ class DrugInteractionModel:
 
         drug1_norm = drug1.strip().lower()
         drug2_norm = drug2.strip().lower()
+
+        rule_severity = self._check_rules(drug1_norm, drug2_norm)
+        if rule_severity:
+            return {
+                "drug1": drug1,
+                "drug2": drug2,
+                "severity": rule_severity,
+                "confidence": 0.99,
+                "model": "rule_based",
+            }
+
         X = [{"drug_1": drug1_norm, "drug_2": drug2_norm}]
         X_transformed = self.preprocessor.transform(X)
 
@@ -125,6 +137,35 @@ class DrugInteractionModel:
             "confidence": confidence,
             "model": model_name,
         }
+
+    def _check_rules(self, drug1: str, drug2: str) -> Optional[str]:
+        combo = f"{drug1} + {drug2}"
+        
+        severe_interactions = [
+            (r"sildenafil.*nitroglycerin|nitroglycerin.*sildenafil", "Grave"),
+            (r"sildenafil.*isosorbide|isosorbide.*sildenafil", "Grave"),
+            (r"simvastatin.*erythromycin|erythromycin.*simvastatin", "Grave"),
+            (r"simvastatin.*clarithromycin|clarithromycin.*simvastatin", "Grave"),
+            (r"simvastatin.*ketoconazole|ketoconazole.*simvastatin", "Grave"),
+            (r"atorvastatin.*erythromycin|erythromycin.*atorvastatin", "Grave"),
+            (r"digoxin.*amiodarone|amiodarone.*digoxin", "Grave"),
+            (r"warfarin.*aspirin|aspirin.*warfarin", "Grave"),
+            (r"amiodarone.*warfarin|warfarin.*amiodarone", "Grave"),
+            (r"fluconazole.*warfarin|warfarin.*fluconazole", "Grave"),
+            (r"digoxin.*furosemide|furosemide.*digoxin", "Grave"),
+            (r"lithium.*ibuprofen|ibuprofen.*lithium", "Grave"),
+            (r"lithium.*naproxen|naproxen.*lithium", "Grave"),
+            (r"dipyrone.*warfarin|warfarin.*dipyrone", "Moderada"),
+            (r"metformin.*contrast|contrast.*metformin", "Moderada"),
+            (r"methotrexate.*nsaid|nsaid.*methotrexate", "Moderada"),
+            (r"lisinopril.*ibuprofen|ibuprofen.*lisinopril", "Moderada"),
+            (r"losartan.*ibuprofen|ibuprofen.*losartan", "Moderada"),
+        ]
+        
+        for pattern, severity in severe_interactions:
+            if re.search(pattern, combo, re.I):
+                return severity
+        return None
 
     def get_metrics(self) -> dict:
         return self._train_metrics
@@ -206,7 +247,7 @@ def get_model_metrics() -> dict:
     return model_metrics
 
 
-def search_drugs(query: str = "", limit: int = 50) -> list[str]:
+def search_drugs(query: str = "", limit: int = 2000) -> list[str]:
     wait_for_model()
     if model_df is None:
         get_model()

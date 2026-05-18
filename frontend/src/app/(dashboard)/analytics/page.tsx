@@ -36,7 +36,7 @@ interface Stats {
   }>;
 }
 
-const COLORS = ["#DC2626", "#F59E0B", "#22C55E"];
+const COLORS = ["#ef4444", "#f59e0b", "#10b981"];
 
 export default function AnalyticsPage() {
   const router = useRouter();
@@ -80,9 +80,9 @@ export default function AnalyticsPage() {
 
   // Prepare chart data
   const severityData = stats ? [
-    { name: "Grave", value: stats.graveCount, color: "#DC2626" },
-    { name: "Moderada", value: stats.moderadaCount, color: "#F59E0B" },
-    { name: "Leve", value: stats.leveCount, color: "#22C55E" },
+    { name: "Grave", value: stats.graveCount, color: "#ef4444", grad: "url(#severityGraveGrad)" },
+    { name: "Moderada", value: stats.moderadaCount, color: "#f59e0b", grad: "url(#severityModeradaGrad)" },
+    { name: "Leve", value: stats.leveCount, color: "#10b981", grad: "url(#severityLeveGrad)" },
   ] : [];
 
   const topDrugsData = stats?.topDrugs.slice(0, 10).map((item) => ({
@@ -101,55 +101,55 @@ export default function AnalyticsPage() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
+        <Card className="glass-card animate-fade-in stagger-1 hover-lift">
           <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
+            <CardDescription className="flex items-center gap-2 font-medium text-foreground">
+              <BarChart3 className="w-4 h-4 text-primary" />
               Total de Consultas
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <CardTitle className="text-3xl font-bold">{stats?.totalInteractions || 0}</CardTitle>
+            <CardTitle className="text-4xl font-extrabold text-foreground">{stats?.totalInteractions || 0}</CardTitle>
           </CardContent>
         </Card>
 
-        <Card className="border-severity-grave/30">
+        <Card className="glass-card border-t-2 border-t-severity-grave animate-fade-in stagger-2 hover-lift relative overflow-hidden">
           <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2 text-severity-grave">
-              <AlertTriangle className="w-4 h-4" />
-              Graves
+            <CardDescription className="flex items-center gap-2 font-medium text-foreground">
+              <span className="w-2 h-2 rounded-full bg-severity-grave animate-pulse-gentle" />
+              Interações Graves
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <CardTitle className="text-3xl font-bold text-severity-grave">
+            <CardTitle className="text-4xl font-extrabold text-foreground">
               {stats?.graveCount || 0}
             </CardTitle>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="glass-card border-t-2 border-t-severity-moderada animate-fade-in stagger-3 hover-lift relative overflow-hidden">
           <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2 text-severity-moderada">
-              <TrendingUp className="w-4 h-4" />
-              Moderadas
+            <CardDescription className="flex items-center gap-2 font-medium text-foreground">
+              <span className="w-2 h-2 rounded-full bg-severity-moderada" />
+              Interações Moderadas
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <CardTitle className="text-3xl font-bold text-severity-moderada">
+            <CardTitle className="text-4xl font-extrabold text-foreground">
               {stats?.moderadaCount || 0}
             </CardTitle>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="glass-card border-t-2 border-t-severity-leve animate-fade-in stagger-4 hover-lift relative overflow-hidden">
           <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2 text-severity-leve">
-              <Pill className="w-4 h-4" />
-              Leves
+            <CardDescription className="flex items-center gap-2 font-medium text-foreground">
+              <span className="w-2 h-2 rounded-full bg-severity-leve" />
+              Interações Leves
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <CardTitle className="text-3xl font-bold text-severity-leve">
+            <CardTitle className="text-4xl font-extrabold text-foreground">
               {stats?.leveCount || 0}
             </CardTitle>
           </CardContent>
@@ -159,12 +159,12 @@ export default function AnalyticsPage() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Severity distribution - Pie chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Distribuição por Severidade</CardTitle>
-            <CardDescription>Proporção de cada tipo de interação</CardDescription>
+        <Card className="glass-card animate-fade-in stagger-1">
+          <CardHeader className="pb-2 border-b border-border/40 bg-muted/5">
+            <CardTitle className="text-foreground font-semibold">Distribuição por Severidade</CardTitle>
+            <CardDescription>Proporção de cada tipo de interação clinica</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -172,9 +172,9 @@ export default function AnalyticsPage() {
                     data={severityData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={5}
+                    innerRadius={65}
+                    outerRadius={85}
+                    paddingAngle={6}
                     dataKey="value"
                     label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
                   >
@@ -182,7 +182,7 @@ export default function AnalyticsPage() {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip />
+                  <Tooltip contentStyle={{ background: "rgba(255,255,255,0.9)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: "12px", boxShadow: "0 10px 25px -10px rgba(0,0,0,0.05)" }} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -190,20 +190,26 @@ export default function AnalyticsPage() {
         </Card>
 
         {/* Top drugs - Bar chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Medicamentos Mais Consultados</CardTitle>
-            <CardDescription>Top 10 medicamentos mais verificados</CardDescription>
+        <Card className="glass-card animate-fade-in stagger-2">
+          <CardHeader className="pb-2 border-b border-border/40 bg-muted/5">
+            <CardTitle className="text-foreground font-semibold">Medicamentos Mais Consultados</CardTitle>
+            <CardDescription>Top 10 medicamentos verificados no sistema</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={topDrugsData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis type="number" />
-                  <YAxis type="category" dataKey="name" width={100} />
-                  <Tooltip />
-                  <Bar dataKey="consultas" fill="#0F766E" radius={[0, 4, 4, 0]} />
+                  <defs>
+                    <linearGradient id="barGradient" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="var(--primary)" stopOpacity="0.25" />
+                      <stop offset="100%" stopColor="var(--primary)" stopOpacity="0.95" />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="rgba(0,0,0,0.03)" horizontal={false} />
+                  <XAxis type="number" stroke="var(--muted-foreground)" fontSize={11} />
+                  <YAxis type="category" dataKey="name" width={100} stroke="var(--muted-foreground)" fontSize={11} />
+                  <Tooltip contentStyle={{ background: "rgba(255,255,255,0.9)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: "12px", boxShadow: "0 10px 25px -10px rgba(0,0,0,0.05)" }} />
+                  <Bar dataKey="consultas" fill="url(#barGradient)" radius={[0, 8, 8, 0]} barSize={14} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -212,22 +218,36 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Severity comparison - Bar chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Comparação de Severidade</CardTitle>
-          <CardDescription>Quantidade de interações por nível de risco</CardDescription>
+      <Card className="glass-card animate-fade-in stagger-3">
+        <CardHeader className="pb-2 border-b border-border/40 bg-muted/5">
+          <CardTitle className="text-foreground font-semibold">Comparação de Severidade</CardTitle>
+          <CardDescription>Quantidade absoluta de interações registradas por risco</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={severityData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                <defs>
+                  <linearGradient id="severityGraveGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#ef4444" stopOpacity="0.9" />
+                    <stop offset="100%" stopColor="#ef4444" stopOpacity="0.25" />
+                  </linearGradient>
+                  <linearGradient id="severityModeradaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.9" />
+                    <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.25" />
+                  </linearGradient>
+                  <linearGradient id="severityLeveGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10b981" stopOpacity="0.9" />
+                    <stop offset="100%" stopColor="#10b981" stopOpacity="0.25" />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="rgba(0,0,0,0.03)" vertical={false} />
+                <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={11} />
+                <YAxis stroke="var(--muted-foreground)" fontSize={11} />
+                <Tooltip contentStyle={{ background: "rgba(255,255,255,0.9)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: "12px", boxShadow: "0 10px 25px -10px rgba(0,0,0,0.05)" }} />
+                <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={32}>
                   {severityData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                    <Cell key={`cell-${index}`} fill={entry.grad} />
                   ))}
                 </Bar>
               </BarChart>

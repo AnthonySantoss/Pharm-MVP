@@ -1,4 +1,4 @@
-import type { TokenResponse, InteractionCheck, HistoryEntry, Stats, ModelsCompare, User, Drug } from "@/types";
+import type { TokenResponse, InteractionCheck, MultiInteractionCheck, HistoryEntry, Stats, ModelsCompare, User, Drug } from "@/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
@@ -134,6 +134,7 @@ class ApiClient {
   }
 
   async getAllDrugs(): Promise<{ drugs: Drug[]; count: number }> {
+    console.log("[API] getAllDrugs called");
     return this.request<{ drugs: Drug[]; count: number }>("/medicamentos/all");
   }
 
@@ -147,6 +148,13 @@ class ApiClient {
     return this.request<InteractionCheck>("/interactions/check", {
       method: "POST",
       body: { drug1, drug2 },
+    });
+  }
+
+  async checkMultiInteraction(drugs: string[]): Promise<MultiInteractionCheck> {
+    return this.request<MultiInteractionCheck>("/interactions/check-multi", {
+      method: "POST",
+      body: { drugs },
     });
   }
 

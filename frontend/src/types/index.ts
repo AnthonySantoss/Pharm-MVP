@@ -76,3 +76,18 @@ export const DrugSchema = z.object({
 });
 
 export type Drug = z.infer<typeof DrugSchema>;
+
+export const MultiInteractionCheckSchema = z.object({
+  drugs: z.array(z.string()),
+  drugs_dcb: z.array(z.string()),
+  pairs_checked: z.number(),
+  interactions: z.array(InteractionCheckSchema),
+  summary: z.object({
+    grave: z.number(),
+    moderada: z.number(),
+    leve: z.number(),
+    total: z.number(),
+  }),
+});
+
+export type MultiInteractionCheck = z.infer<typeof MultiInteractionCheckSchema>;

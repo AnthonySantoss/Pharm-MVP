@@ -17,41 +17,77 @@ def get_medications(
     """Get list of medications, optionally filtered by search query"""
     wait_for_model()
     translator = get_translator()
-    drugs_inn = search_drugs(query=search, limit=limit)
 
-    drugs = []
-    for inn in drugs_inn:
-        dcb = translator.translate_drug_name(inn)
-        drug_class = translator.get_drug_class(inn)
-        drugs.append({
-            "inn": inn,
-            "dcb": dcb,
-            "class": drug_class or "",
-            "display": f"{dcb} ({inn})" if dcb != inn else inn,
-        })
+    results = []
+    seen_inn = set()
 
-    return {"drugs": drugs, "count": len(drugs)}
+    dict_drugs = translator.search_drugs(query=search, limit=limit)
+    for d in dict_drugs:
+        inn = d["inn"]
+        if inn not in seen_inn:
+            seen_inn.add(inn)
+            results.append({
+                "inn": inn,
+                "dcb": d["dcb"],
+                "class": d.get("class", ""),
+                "display": f"{d['dcb']} ({inn})" if d["dcb"] != inn else inn,
+            })
+
+    if len(results) < limit:
+        remaining = limit - len(results)
+        model_drugs = search_drugs(query=search, limit=remaining * 2)
+        for inn in model_drugs:
+            if inn not in seen_inn:
+                seen_inn.add(inn)
+                dcb = translator.translate_drug_name(inn)
+                drug_class = translator.get_drug_class(inn)
+                results.append({
+                    "inn": inn,
+                    "dcb": dcb,
+                    "class": drug_class or "",
+                    "display": f"{dcb} ({inn})" if dcb != inn else inn,
+                })
+
+    return {"drugs": results, "count": len(results)}
 
 
 @router.get("/all")
 def get_all_medications(
-    limit: int = Query(500, description="Maximum number of drugs to return"),
+    limit: int = Query(2000, description="Maximum number of drugs to return"),
     db: Session = Depends(get_db)
 ):
     """Get all medications in the database"""
     wait_for_model()
     translator = get_translator()
-    drugs_inn = search_drugs(query="", limit=limit)
 
-    drugs = []
-    for inn in drugs_inn:
-        dcb = translator.translate_drug_name(inn)
-        drug_class = translator.get_drug_class(inn)
-        drugs.append({
-            "inn": inn,
-            "dcb": dcb,
-            "class": drug_class or "",
-            "display": f"{dcb} ({inn})" if dcb != inn else inn,
-        })
+    results = []
+    seen_inn = set()
 
-    return {"drugs": drugs, "count": len(drugs)}
+    dict_drugs = translator.search_drugs(query="", limit=limit)
+    for d in dict_drugs:
+        inn = d["inn"]
+        if inn not in seen_inn:
+            seen_inn.add(inn)
+            results.append({
+                "inn": inn,
+                "dcb": d["dcb"],
+                "class": d.get("class", ""),
+                "display": f"{d['dcb']} ({inn})" if d["dcb"] != inn else inn,
+            })
+
+    if len(results) < limit:
+        remaining = limit - len(results)
+        model_drugs = search_drugs(query="", limit=remaining * 2)
+        for inn in model_drugs:
+            if inn not in seen_inn:
+                seen_inn.add(inn)
+                dcb = translator.translate_drug_name(inn)
+                drug_class = translator.get_drug_class(inn)
+                results.append({
+                    "inn": inn,
+                    "dcb": dcb,
+                    "class": drug_class or "",
+                    "display": f"{dcb} ({inn})" if dcb != inn else inn,
+                })
+
+    return {"drugs": results, "count": len(results)}

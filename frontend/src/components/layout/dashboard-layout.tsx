@@ -12,6 +12,7 @@ import {
   History,
   BarChart3,
   Users,
+  Brain,
   Settings,
   LogOut,
   Menu,
@@ -26,6 +27,7 @@ const navItems = [
   { href: "/history", icon: History, label: "Histórico", roles: ["admin", "pharmacist", "patient"] },
   { href: "/analytics", icon: BarChart3, label: "Análises", roles: ["admin", "pharmacist"] },
   { href: "/admin", icon: Users, label: "Usuários", roles: ["admin"] },
+  { href: "/accuracy", icon: Brain, label: "Acurácia IA", roles: ["admin"] },
 ];
 
 interface DashboardLayoutProps {
@@ -49,7 +51,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative overflow-x-hidden">
+      {/* Premium Cinematic Ambient Glow Auras */}
+      <div className="ambient-glow-wrapper">
+        <div className="ambient-glow-1" />
+        <div className="ambient-glow-2" />
+      </div>
       {/* Mobile menu button */}
       <div className="lg:hidden fixed top-4 left-4 z-50">
         <Button
@@ -72,26 +79,26 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed top-0 left-0 z-40 h-screen bg-card border-r transition-all duration-300",
+          "fixed top-4 left-4 z-40 h-[calc(100vh-2rem)] rounded-2xl border border-border/40 glass transition-all duration-300 shadow-sm",
           isSidebarOpen ? "w-64" : "w-20",
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="flex items-center justify-between p-4 border-b">
+          <div className="flex items-center justify-between p-4 border-b border-border/40">
             <Link href="/dashboard" className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center flex-shrink-0 shadow-sm animate-pulse-gentle">
                 <Pill className="w-5 h-5 text-white" />
               </div>
               {isSidebarOpen && (
-                <span className="font-bold text-xl text-foreground">PharmIA</span>
+                <span className="font-bold text-xl text-foreground tracking-tight">PharmIA</span>
               )}
             </Link>
             <Button
               variant="ghost"
               size="icon"
-              className="hidden lg:flex"
+              className="hidden lg:flex hover:bg-muted/50"
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             >
               {isSidebarOpen ? (
@@ -103,7 +110,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2">
+          <nav className="flex-1 p-4 space-y-1.5">
             {filteredNavItems.map((item) => {
               const isActive = pathname === item.href;
               return (
@@ -112,37 +119,37 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                   href={item.href}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
+                    "flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200",
                     isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      ? "bg-primary/8 text-primary font-semibold border-l-2 border-primary rounded-l-none"
+                      : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
                   )}
                 >
-                  <item.icon className="w-5 h-5 flex-shrink-0" />
-                  {isSidebarOpen && <span className="font-medium">{item.label}</span>}
+                  <item.icon className={cn("w-5 h-5 flex-shrink-0", isActive && "text-primary")} />
+                  {isSidebarOpen && <span className="font-medium text-[14px]">{item.label}</span>}
                 </Link>
               );
             })}
           </nav>
 
           {/* User section */}
-          <div className="p-4 border-t">
+          <div className="p-4 border-t border-border/40">
             {isSidebarOpen && user && (
               <div className="mb-4 px-2">
-                <p className="text-sm font-medium text-foreground truncate">{user.name}</p>
+                <p className="text-sm font-semibold text-foreground truncate">{user.name}</p>
                 <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                <span className="inline-block mt-1 px-2 py-0.5 text-xs rounded-full bg-primary/10 text-primary capitalize">
+                <span className="inline-block mt-2 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded-full bg-primary/10 text-primary">
                   {user.role === "pharmacist" ? "Farmacêutico" : user.role === "patient" ? "Paciente" : "Admin"}
                 </span>
               </div>
             )}
             <Button
               variant="ghost"
-              className={cn("w-full justify-start", !isSidebarOpen && "lg:justify-center")}
+              className={cn("w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/5", !isSidebarOpen && "lg:justify-center")}
               onClick={handleLogout}
             >
-              <LogOut className="w-5 h-5 mr-3 lg:mr-0" />
-              {isSidebarOpen && <span>Sair</span>}
+              <LogOut className="w-5 h-5 mr-3 lg:mr-0 flex-shrink-0" />
+              {isSidebarOpen && <span className="font-medium text-[14px]">Sair</span>}
             </Button>
           </div>
         </div>
@@ -152,10 +159,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       <main
         className={cn(
           "transition-all duration-300",
-          isSidebarOpen ? "lg:ml-64" : "lg:ml-20"
+          isSidebarOpen ? "lg:ml-72" : "lg:ml-28"
         )}
       >
-        <div className="p-4 lg:p-8 pt-16 lg:pt-8">
+        <div className="p-4 lg:p-8 pt-20 lg:pt-8 animate-fade-in">
           {children}
         </div>
       </main>

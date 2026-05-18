@@ -199,8 +199,6 @@ class PTBRTranslator:
                 "pode requerer ajuste de dose",
 
             # Farmacodinâmica geral
-            re.compile(r" of ", re.I):
-                " de ",
             re.compile(r" may increase", re.I):
                 " pode aumentar",
             re.compile(r" may decrease", re.I):
@@ -316,10 +314,140 @@ class PTBRTranslator:
                     return inn
         return None
 
-    def translate_description(self, description_en: str) -> str:
+    def translate_description(self, description_en: str, drug1: Optional[str] = None, drug2: Optional[str] = None) -> str:
         if not description_en:
-            return "Interação não especificada."
+            return "Descrição da interação não disponível."
 
+        desc_clean = description_en.strip().rstrip(".").strip()
+        desc_lower = desc_clean.lower()
+
+        if desc_lower in [
+            "interaction description not available",
+            "interaction description not available.",
+            "no description",
+            "not available",
+            "not available."
+        ]:
+            return "Descrição da interação não disponível."
+
+        # Template 1: The risk or severity of adverse effects can be increased when [Drug 1] is combined with [Drug 2].
+        match = re.search(r"The risk or severity of adverse effects can be increased when (.*?) is combined with (.*)", desc_clean, re.I)
+        if match:
+            d1_pt = self.translate_drug_name(match.group(1))
+            d2_pt = self.translate_drug_name(match.group(2))
+            return f"O risco ou a gravidade dos efeitos adversos pode ser aumentado quando {d1_pt} é combinado com {d2_pt}."
+
+        # Template 2: The risk or severity of QTc prolongation can be increased when [Drug 1] is combined with [Drug 2].
+        match = re.search(r"The risk or severity of QTc prolongation can be increased when (.*?) is combined with (.*)", desc_clean, re.I)
+        if match:
+            d1_pt = self.translate_drug_name(match.group(1))
+            d2_pt = self.translate_drug_name(match.group(2))
+            return f"O risco ou a gravidade do prolongamento do intervalo QTc pode ser aumentado quando {d1_pt} é combinado com {d2_pt}."
+
+        # Template 3: The metabolism of [Drug 2] can be decreased/increased when combined with [Drug 1].
+        match = re.search(r"The metabolism of (.*?) can be (decreased|increased) when combined with (.*)", desc_clean, re.I)
+        if match:
+            d1_pt = self.translate_drug_name(match.group(1))
+            action = "diminuído" if match.group(2).lower() == "decreased" else "aumentado"
+            d2_pt = self.translate_drug_name(match.group(3))
+            return f"O metabolismo de {d1_pt} pode ser {action} quando combinado com {d2_pt}."
+
+        # Template 4: The serum concentration of [Drug 2] can be increased/decreased when it is combined with [Drug 1].
+        match = re.search(r"The serum concentration of (.*?) can be (increased|decreased) when it is combined with (.*)", desc_clean, re.I)
+        if match:
+            d1_pt = self.translate_drug_name(match.group(1))
+            action = "aumentada" if match.group(2).lower() == "increased" else "diminuída"
+            d2_pt = self.translate_drug_name(match.group(3))
+            return f"A concentração sérica de {d1_pt} pode ser {action} quando combinada com {d2_pt}."
+
+        # Template 5: The therapeutic efficacy of [Drug 2] can be decreased/increased when used in combination with [Drug 1].
+        match = re.search(r"The therapeutic efficacy of (.*?) can be (decreased|increased) when used in combination with (.*)", desc_clean, re.I)
+        if match:
+            d1_pt = self.translate_drug_name(match.group(1))
+            action = "diminuída" if match.group(2).lower() == "decreased" else "aumentada"
+            d2_pt = self.translate_drug_name(match.group(3))
+            return f"A eficácia terapêutica de {d1_pt} pode ser {action} quando usada em combinação com {d2_pt}."
+
+        # Template 6: [Drug 1] may increase/decrease the [Activity] activities of [Drug 2].
+        match = re.search(r"(.*?) may (increase|decrease) the (.*?) activities of (.*)", desc_clean, re.I)
+        if match:
+            d1_pt = self.translate_drug_name(match.group(1))
+            action = "aumentar" if match.group(2).lower() == "increase" else "diminuir"
+            activity_en = match.group(3).strip().lower()
+            d2_pt = self.translate_drug_name(match.group(4))
+
+            activities_map = {
+                "photosensitizing": "os efeitos fotossensibilizantes",
+                "cardiotoxic": "os efeitos cardiotóxicos",
+                "hypotensive": "os efeitos hipotensores",
+                "qtc-prolonging": "a capacidade de prolongamento do intervalo QTc",
+                "anticoagulant": "os efeitos anticoagulantes",
+                "antihypertensive": "os efeitos anti-hipertensivos",
+                "hypoglycemic": "os efeitos hipoglicemiantes",
+                "bradycardic": "os efeitos bradicárdicos",
+                "hypokalemic": "os efeitos hipocalêmicos",
+                "sedative": "os efeitos sedativos",
+                "neuroexcitatory": "os efeitos neuroexcitadores",
+                "serotonergic": "os efeitos serotoninérgicos",
+                "atrioventricular blocking (av block)": "os efeitos de bloqueio atrioventricular (bloqueio AV)",
+                "hypertensive": "os efeitos hipertensores",
+                "nephrotoxic": "os efeitos nefrotóxicos (toxicidade renal)",
+                "orthostatic hypotensive": "os efeitos hipotensores ortostáticos",
+                "stimulatory": "os efeitos estimulantes",
+                "myelosuppressive": "os efeitos mielossupressores",
+                "neurotoxic": "os efeitos neurotóxicos",
+                "ototoxic": "os efeitos ototóxicos",
+                "hepatotoxic": "os efeitos hepatotóxicos",
+                "anticholinergic": "os efeitos anticolinérgicos",
+                "ulcerogenic": "os efeitos ulcerogênicos",
+                "vasodilatory": "os efeitos vasodilatadores",
+                "central nervous system depressant (cns depressant)": "os efeitos depressores do sistema nervoso central (SNC)",
+                "cns depressant": "os efeitos depressores do sistema nervoso central (SNC)",
+                "adverse neuromuscular": "os efeitos neuromusculares adversos",
+                "hyperkalemic": "os efeitos hipercalêmicos",
+                "anesthetic": "os efeitos anestésicos",
+            }
+            activity_pt = activities_map.get(activity_en)
+            if not activity_pt:
+                act_pt = activity_en.replace("ing", "").replace("toxic", "tóxicos").replace("ic", "icos").replace("ive", "ivos")
+                activity_pt = f"as atividades {act_pt}"
+            return f"{d1_pt} pode {action} {activity_pt} de {d2_pt}."
+
+        # Template 7: [Drug 1] may decrease/increase the excretion rate of [Drug 2] which could result in a higher/lower serum level.
+        match = re.search(r"(.*?) may (decrease|increase) the excretion rate of (.*?) which could result in a (higher|lower) serum level", desc_clean, re.I)
+        if match:
+            d1_pt = self.translate_drug_name(match.group(1))
+            action = "diminuir" if match.group(2).lower() == "decrease" else "aumentar"
+            d2_pt = self.translate_drug_name(match.group(3))
+            level = "mais elevados" if match.group(4).lower() == "higher" else "mais baixos"
+            return f"{d1_pt} pode {action} a taxa de excreção de {d2_pt}, o que pode resultar em níveis séricos {level}."
+
+        # Template 8: [Drug 1] can cause a decrease/increase in the absorption of [Drug 2] resulting in a reduced/increased serum concentration and potentially a decrease/increase in efficacy.
+        match = re.search(r"(.*?) can cause a (decrease|increase) in the absorption of (.*?) resulting in a (reduced|increased) serum concentration and potentially a (decrease|increase) in efficacy", desc_clean, re.I)
+        if match:
+            d1_pt = self.translate_drug_name(match.group(1))
+            abs_action = "diminuição" if match.group(2).lower() == "decrease" else "aumento"
+            d2_pt = self.translate_drug_name(match.group(3))
+            conc_action = "reduzida" if match.group(4).lower() == "reduced" else "aumentada"
+            eff_action = "diminuição" if match.group(5).lower() == "decrease" else "aumento"
+            return f"{d1_pt} pode causar uma {abs_action} na absorção de {d2_pt}, resultando em uma concentração sérica {conc_action} e potencialmente em uma {eff_action} da eficácia."
+
+        # Template 9: The serum concentration of the active metabolites of [Drug 2] can be increased when [Drug 2] is used in combination with [Drug 1].
+        match = re.search(r"The serum concentration of the active metabolites of (.*?) can be increased when (.*?) is used in combination with (.*)", desc_clean, re.I)
+        if match:
+            d1_pt = self.translate_drug_name(match.group(1))
+            d3_pt = self.translate_drug_name(match.group(3))
+            return f"A concentração sérica dos metabólitos ativos de {d1_pt} pode ser aumentada quando usada em combinação com {d3_pt}."
+
+        # Template 10: The bioavailability of [Drug 2] can be decreased/increased when combined with [Drug 1].
+        match = re.search(r"The bioavailability of (.*?) can be (decreased|increased) when combined with (.*)", desc_clean, re.I)
+        if match:
+            d1_pt = self.translate_drug_name(match.group(1))
+            action = "diminuída" if match.group(2).lower() == "decreased" else "aumentada"
+            d2_pt = self.translate_drug_name(match.group(3))
+            return f"A biodisponibilidade de {d1_pt} pode ser {action} quando combinada com {d2_pt}."
+
+        # Existing dictionary / regex-based replacements fallback
         result = description_en
         for pattern, translation in self._description_patterns.items():
             result = pattern.sub(translation, result)
@@ -332,6 +460,10 @@ class PTBRTranslator:
         # Se nada mudou, tentar tradução simples
         if result == description_en:
             result = self._simple_translate(description_en)
+
+        # Add period if missing for fallback result
+        if result and not result.endswith("."):
+            result += "."
 
         return result
 
@@ -367,6 +499,104 @@ class PTBRTranslator:
         for en, pt in replacements:
             result = result.replace(en, pt)
         return result.strip()
+
+    def generate_fallback_description(self, drug1: str, drug2: str, severity: str) -> str:
+        d1_pt = self.translate_drug_name(drug1)
+        d2_pt = self.translate_drug_name(drug2)
+        c1 = self.get_drug_class(drug1)
+        c2 = self.get_drug_class(drug2)
+        
+        # Robust class normalization
+        def categorize_class(class_name: Optional[str]) -> Optional[str]:
+            if not class_name:
+                return None
+            c = class_name.lower().strip()
+            if "anti-inflamatório" in c or "aine" in c:
+                return "anti-inflamatório"
+            if "ansiolítico" in c or "benzodiazepínico" in c:
+                return "ansiolítico"
+            if "antidepressivo tricíclico" in c:
+                return "antidepressivo tricíclico"
+            if "anticoagulante" in c:
+                return "anticoagulante"
+            if "estatina" in c:
+                return "estatina"
+            if "macrolídeo" in c or "macrolideo" in c:
+                return "antibiótico macrolídeo"
+            if "antihipertensivo" in c or "anti-hipertensivo" in c:
+                return "antihipertensivo"
+            if "diurético" in c or "diuretico" in c:
+                return "diurético"
+            if "analgésico" in c or "analgesico" in c:
+                return "analgésico"
+            if "cardiotônico" in c or "cardiotonico" in c:
+                return "cardiotônico"
+            if "antiarrítmico" in c or "antiarritmico" in c:
+                return "antiarrítmico"
+            if "antifúngico" in c or "antifungico" in c:
+                return "antifúngico"
+            return c
+
+        c1_cat = categorize_class(c1)
+        c2_cat = categorize_class(c2)
+        
+        # Human-friendly Portuguese class names
+        class_translations = {
+            "ansiolítico": "ansiolítico (benzodiazepínico)",
+            "antidepressivo tricíclico": "antidepressivo tricíclico",
+            "anti-inflamatório": "anti-inflamatório não esteroide (AINE)",
+            "anticoagulante": "anticoagulante",
+            "estatina": "estatina (redutor de colesterol)",
+            "antibiótico macrolídeo": "antibiótico macrolídeo",
+            "antihipertensivo": "anti-hipertensivo",
+            "diurético": "diurético",
+            "analgésico": "analgésico",
+            "cardiotônico": "cardiotônico",
+            "antiarrítmico": "antiarrítmico",
+            "antifúngico": "antifúngico",
+        }
+        
+        c1_pt = class_translations.get(c1_cat) if c1_cat else None
+        c2_pt = class_translations.get(c2_cat) if c2_cat else None
+        
+        disclaimer = " [Nota: Esta orientação é baseada no perfil geral das classes farmacológicas. Sempre consulte um profissional de saúde.]"
+
+        # Specific class combinations
+        if c1_cat and c2_cat:
+            pair_key = tuple(sorted([c1_cat, c2_cat]))
+            
+            # Ansiolítico + Antidepressivo tricíclico
+            if "ansiolítico" in pair_key and "antidepressivo tricíclico" in pair_key:
+                return f"O uso concomitante de {d1_pt} ({c1_pt}) e {d2_pt} ({c2_pt}) pode potencializar mutuamente a depressão do Sistema Nervoso Central (SNC). Isso pode resultar em aumento acentuado da sonolência, sedação, fadiga e risco de depressão respiratória. Recomenda-se monitoramento clínico rigoroso.{disclaimer}"
+            
+            # Anticoagulante + Anti-inflamatório (AINE)
+            if "anticoagulante" in pair_key and "anti-inflamatório" in pair_key:
+                return f"A administração conjunta de {d1_pt} ({c1_pt}) e {d2_pt} ({c2_pt}) aumenta significativamente o risco de sangramentos graves, especialmente hemorragias gastrointestinais, devido ao efeito antiplaquetário e à irritação da mucosa gástrica pelo AINE.{disclaimer}"
+            
+            # Anti-hipertensivo + Anti-inflamatório (AINE)
+            if "anti-inflamatório" in pair_key and any(x in ["diurético", "antihipertensivo"] for x in pair_key):
+                anti_hyp = d1_pt if "anti-inflamatório" != c1_cat else d2_pt
+                class_anti_hyp = c1_pt if "anti-inflamatório" != c1_cat else c2_pt
+                nsaid_name = d2_pt if "anti-inflamatório" != c1_cat else d1_pt
+                return f"Anti-inflamatórios como o {nsaid_name} podem diminuir a eficácia terapêutica de agentes cardiovasculares como o {anti_hyp} ({class_anti_hyp}) ao promoverem a retenção de sódio e água, além de aumentar o risco de lesão renal aguda.{disclaimer}"
+            
+            # Estatina + Macrolídeo
+            if "estatina" in pair_key and "antibiótico macrolídeo" in pair_key:
+                statin_name = d1_pt if "estatina" == c1_cat else d2_pt
+                macrolide_name = d2_pt if "estatina" == c1_cat else d1_pt
+                return f"Antibióticos macrolídeos ({macrolide_name}) podem inibir o metabolismo hepático de estatinas ({statin_name}), aumentando consideravelmente seus níveis séricos e elevando o risco de toxicidade muscular (miopatia ou rabdomiólise).{disclaimer}"
+
+        # Class level descriptions
+        if c1_pt and c2_pt:
+            return f"A combinação entre medicamentos da classe dos {c1_pt}s (como {d1_pt}) e da classe dos {c2_pt}s (como {d2_pt}) é clinicamente avaliada como de severidade {severity}. Recomenda-se atenção profissional e monitoramento dos sintomas do paciente.{disclaimer}"
+        elif c1_pt or c2_pt:
+            known_drug = d1_pt if c1_pt else d2_pt
+            known_class = c1_pt if c1_pt else c2_pt
+            other_drug = d2_pt if c1_pt else d1_pt
+            return f"Interação de severidade {severity} entre {known_drug} (classe: {known_class}) e {other_drug}. Recomenda-se cautela no uso simultâneo, observando possíveis reações adversas.{disclaimer}"
+            
+        # Default fallback
+        return f"Interação medicamentosa de severidade {severity} identificada entre os fármacos {d1_pt} e {d2_pt}. Recomenda-se que o uso concomitante seja supervisionado por um profissional de saúde (médico ou farmacêutico) para garantir a segurança da terapia."
 
     def get_all_dcb_names(self) -> list[str]:
         names = []
