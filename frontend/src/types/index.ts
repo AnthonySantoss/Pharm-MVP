@@ -50,11 +50,15 @@ export const ModelMetricsSchema = z.object({
   accuracy: z.number(),
   f1_weighted: z.number(),
   f1_macro: z.number(),
+  precision_class: z.record(z.string(), z.number()),
+  recall_class: z.record(z.string(), z.number()),
 });
 
 export const ModelsCompareSchema = z.object({
   models: z.array(ModelMetricsSchema),
   classes: z.array(z.string()),
+  confusion_matrix: z.array(z.record(z.string(), z.any())),
+  cross_val_accuracy: z.number(),
 });
 
 export type ModelsCompare = z.infer<typeof ModelsCompareSchema>;

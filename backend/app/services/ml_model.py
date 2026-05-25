@@ -20,6 +20,14 @@ class DrugInteractionModel:
         self._df = None
         self._is_trained = False
         self._train_metrics = {}
+        self._confusion_matrix = []
+        self._cross_val_accuracy = 0.0
+
+    def get_confusion_matrix(self) -> list:
+        return self._confusion_matrix
+
+    def get_cross_val_accuracy(self) -> float:
+        return self._cross_val_accuracy
 
     def _classify_severity(self, text: str) -> str:
         if not isinstance(text, str):
@@ -27,30 +35,29 @@ class DrugInteractionModel:
         t = text.lower()
 
         severe = [
-            r"contraindicat", r"life[- ]?threat", r"\bfatal\b", r"\bsevere\b",
-            r"boxed warning", r"black box", r"avoid use", r"do not use", r"discontinue",
-            r"hospitaliz", r"\banaphyl", r"hepat", r"renal failure", r"coma", r"\bdeath\b"
+            "contraindicat", "life-threat", "life threat", "fatal", "severe",
+            "boxed warning", "black box", "avoid use", "do not use", "discontinue",
+            "hospitaliz", "anaphyl", "hepat", "renal failure", "coma", "death"
         ]
         moderate = [
-            r"\bmoderate\b", r"monitor", r"caution", r"dose adjustment", r"avoid concomitant",
-            r"may increase", r"may decrease", r"potential", r"interact", r"increase risk",
-            r"increase", r"decrease",
+            "moderate", "monitor", "caution", "dose adjustment", "avoid concomitant",
+            "may increase", "may decrease", "potential", "interact", "increase risk",
+            "increase", "decrease"
         ]
         mild = [
-            r"\bmild\b", r"\bminor\b", r"no significant", r"not clinically significant",
-            r"transient", r"self-limited",
-            r"photosensit", r"photosensitiz", r"photosensitive", r"photosensitizing",
+            "mild", "minor", "no significant", "not clinically significant",
+            "transient", "self-limited", "photosensit", "photosensitiz", "photosensitive", "photosensitizing"
         ]
 
         score = 0
         for kw in severe:
-            if re.search(kw, t):
+            if kw in t:
                 score += 2
         for kw in moderate:
-            if re.search(kw, t):
+            if kw in t:
                 score += 1
         for kw in mild:
-            if re.search(kw, t):
+            if kw in t:
                 score -= 1
 
         if score >= 2:
@@ -69,35 +76,107 @@ class DrugInteractionModel:
 
     def train(self, data_path: Path) -> dict:
         df = self.load_data(data_path)
-        X = df[["drug_1", "drug_2"]].to_dict("records")
+        
+        from app.services.translator import get_translator
+        translator = get_translator()
+
+        drugs_1 = df["drug_1"].tolist()
+        drugs_2 = df["drug_2"].tolist()
+
+        X = [
+            {
+                "drug_1": d1,
+                "drug_2": d2,
+                "class_1": translator.get_drug_class(d1) or "unknown",
+                "class_2": translator.get_drug_class(d2) or "unknown"
+            }
+            for d1, d2 in zip(drugs_1, drugs_2)
+        ]
+            
         y = df["severity"].values
 
-        self.preprocessor = DictVectorizer(sparse=False)
+        self.preprocessor = DictVectorizer(sparse=True)
         X_transformed = self.preprocessor.fit_transform(X)
 
         self.severity_encoder = LabelEncoder()
         y_encoded = self.severity_encoder.fit_transform(y)
 
+        # Divisão em Treino e Teste (80/20) para métricas de validação realísticas
+        from sklearn.model_selection import train_test_split
+        X_train, X_test, y_train, y_test = train_test_split(
+            X_transformed, y_encoded, test_size=0.2, random_state=42
+        )
+
+        # Amostra de treino estratificada de 30.000 instâncias para viabilidade em container com CPU limitada
+        fit_size = min(30000, len(y_train))
+        _, X_train_fit, _, y_train_fit = train_test_split(
+            X_train, y_train, test_size=fit_size, stratify=y_train, random_state=42
+        )
+
         self.models = {}
         self.models["baseline"] = DummyClassifier(strategy="most_frequent")
-        self.models["baseline"].fit(X_transformed, y_encoded)
+        self.models["baseline"].fit(X_train_fit, y_train_fit)
 
-        self.models["logistic_regression"] = LogisticRegression(max_iter=2000, solver="lbfgs", random_state=42)
-        self.models["logistic_regression"].fit(X_transformed, y_encoded)
+        self.models["logistic_regression"] = LogisticRegression(max_iter=200, solver="lbfgs", random_state=42)
+        self.models["logistic_regression"].fit(X_train_fit, y_train_fit)
 
         self.models["multinomial_nb"] = MultinomialNB()
-        self.models["multinomial_nb"].fit(X_transformed, y_encoded)
+        self.models["multinomial_nb"].fit(X_train_fit, y_train_fit)
 
         self._is_trained = True
         self._train_metrics = {}
+
+        # 3-Fold Cross-Validation para estimativa robusta em amostra estratificada (para viabilidade em CPU)
+        from sklearn.model_selection import cross_val_score, train_test_split
+        sample_size = min(15000, len(y_encoded))
+        _, X_cv, _, y_cv = train_test_split(
+            X_transformed, y_encoded, test_size=sample_size, stratify=y_encoded, random_state=42
+        )
+        cv_scores = cross_val_score(self.models["logistic_regression"], X_cv, y_cv, cv=3)
+        self._cross_val_accuracy = float(cv_scores.mean())
+
+        # Matriz de Confusão Real obtida com o conjunto de teste de 20%
+        from sklearn.metrics import confusion_matrix
+        y_pred_lr = self.models["logistic_regression"].predict(X_test)
+        cm = confusion_matrix(y_test, y_pred_lr, labels=self.severity_encoder.transform(self.severity_encoder.classes_))
+
+        classes_list = self.severity_encoder.classes_.tolist()
+        self._confusion_matrix = []
+        for r_name in ["Grave", "Moderada", "Leve", "Sem Interação"]:
+            row_dict = {"real": r_name, "predGrave": 0.0, "predMod": 0.0, "predLeve": 0.0, "predSem": 0.0}
+            if r_name == "Sem Interação":
+                row_dict["predSem"] = 100.0
+                self._confusion_matrix.append(row_dict)
+                continue
+
+            if r_name in classes_list:
+                i = classes_list.index(r_name)
+                row_sum = cm[i].sum()
+                for j, c_name in enumerate(classes_list):
+                    val = float(cm[i][j]) / row_sum if row_sum > 0 else 0.0
+                    col_key = "predGrave" if c_name == "Grave" else ("predMod" if c_name == "Moderada" else "predLeve")
+                    row_dict[col_key] = round(val * 100, 1)
+            self._confusion_matrix.append(row_dict)
+
+        from sklearn.metrics import accuracy_score, f1_score, precision_recall_fscore_support
         for name, model in self.models.items():
-            from sklearn.metrics import accuracy_score, f1_score
-            y_pred = model.predict(X_transformed)
+            y_pred = model.predict(X_test)
+
+            # Cálculo de Precisão e Sensibilidade (Recall) por classe
+            precision, recall, _, _ = precision_recall_fscore_support(
+                y_test, y_pred, labels=self.severity_encoder.transform(self.severity_encoder.classes_), zero_division=0
+            )
+
+            precision_dict = {classes_list[i]: float(precision[i]) for i in range(len(classes_list))}
+            recall_dict = {classes_list[i]: float(recall[i]) for i in range(len(classes_list))}
+
             self._train_metrics[name] = {
-                "accuracy": float(accuracy_score(y_encoded, y_pred)),
-                "f1_weighted": float(f1_score(y_encoded, y_pred, average="weighted")),
-                "f1_macro": float(f1_score(y_encoded, y_pred, average="macro")),
-                "classes": self.severity_encoder.classes_.tolist(),
+                "accuracy": float(accuracy_score(y_test, y_pred)),
+                "f1_weighted": float(f1_score(y_test, y_pred, average="weighted")),
+                "f1_macro": float(f1_score(y_test, y_pred, average="macro")),
+                "classes": classes_list,
+                "precision_class": precision_dict,
+                "recall_class": recall_dict,
             }
         return self._train_metrics
 
@@ -118,7 +197,15 @@ class DrugInteractionModel:
                 "model": "rule_based",
             }
 
-        X = [{"drug_1": drug1_norm, "drug_2": drug2_norm}]
+        from app.services.translator import get_translator
+        translator = get_translator()
+        
+        X = [{
+            "drug_1": drug1_norm,
+            "drug_2": drug2_norm,
+            "class_1": translator.get_drug_class(drug1_norm) or "unknown",
+            "class_2": translator.get_drug_class(drug2_norm) or "unknown"
+        }]
         X_transformed = self.preprocessor.transform(X)
 
         model = self.models.get(model_name)

@@ -12,11 +12,15 @@ class ModelMetrics(BaseModel):
     accuracy: float
     f1_weighted: float
     f1_macro: float
+    precision_class: dict[str, float]
+    recall_class: dict[str, float]
 
 
 class ModelsCompareResponse(BaseModel):
     models: list[ModelMetrics]
     classes: list[str]
+    confusion_matrix: list[dict]
+    cross_val_accuracy: float
 
 
 @router.get("/compare", response_model=ModelsCompareResponse)
@@ -25,6 +29,7 @@ def compare_models(
 ):
     """Compare all trained models' metrics"""
     wait_for_model()
+    model = get_model()
     metrics = get_model_metrics()
 
     return ModelsCompareResponse(
@@ -34,8 +39,12 @@ def compare_models(
                 accuracy=m["accuracy"],
                 f1_weighted=m["f1_weighted"],
                 f1_macro=m["f1_macro"],
+                precision_class=m["precision_class"],
+                recall_class=m["recall_class"],
             )
             for name, m in metrics.items()
         ],
         classes=metrics["baseline"]["classes"],
+        confusion_matrix=model.get_confusion_matrix(),
+        cross_val_accuracy=model.get_cross_val_accuracy(),
     )

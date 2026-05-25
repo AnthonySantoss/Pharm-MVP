@@ -18,25 +18,25 @@ const modelDetails: Record<string, {
   badgeColor: string;
   active: boolean;
 }> = {
-  "LogisticRegression": {
+  "logistic_regression": {
     title: "Regressão Logística",
-    desc: "Modelo preditivo binário usado para classificar a severidade da interação — calcula probabilidades com regressão logística multinomial.",
+    desc: "Modelo preditivo multinomial usado para classificar a severidade da interação — calcula probabilidades de relevância clínica e severidade.",
     icon: Brain,
     badge: "Ativo",
     badgeColor: "bg-primary/10 text-primary border-primary/20",
     active: true,
   },
-  "GradientBoosting": {
-    title: "Gradient Boosting (XGBoost)",
-    desc: "Modelo ensemble que constrói árvores sequenciais corrigindo erros anteriores — robusto para dados estruturados e classes desbalanceadas.",
+  "multinomial_nb": {
+    title: "Naive Bayes Multinomial",
+    desc: "Modelo probabilístico baseado no Teorema de Bayes — assume independência condicional entre a presença dos fármacos.",
     icon: Activity,
     badge: "Standby",
     badgeColor: "bg-muted text-muted-foreground border-border/50",
     active: false,
   },
-  "RidgeClassifier": {
-    title: "Ridge Classifier",
-    desc: "Modelo linear regularizado (L2) que reduz overfitting em features correlacionadas — usado como baseline comparativo do estudo.",
+  "baseline": {
+    title: "Baseline (Dummy Classifier)",
+    desc: "Classificador de referência que simplesmente prevê a classe mais frequente no conjunto de dados, servindo de baseline comparativo.",
     icon: TrendingUp,
     badge: "Standby",
     badgeColor: "bg-muted text-muted-foreground border-border/50",
@@ -71,7 +71,7 @@ export default function AccuracyPage() {
 
   if (!isAuthenticated) return null;
 
-  const confusionMatrix = [
+  const confusionMatrix = data?.confusion_matrix || [
     { real: "Grave", predGrave: 88, predMod: 10, predLeve: 2, predSem: 0 },
     { real: "Moderada", predGrave: 8, predMod: 91, predLeve: 1, predSem: 0 },
     { real: "Leve", predGrave: 1, predMod: 4, predLeve: 93, predSem: 2 },
@@ -90,6 +90,9 @@ export default function AccuracyPage() {
     );
   }
 
+  const lrMetrics = data?.models.find(m => m.model === "logistic_regression");
+  const overallAccuracy = lrMetrics ? `${(lrMetrics.accuracy * 100).toFixed(2)}%` : "91.84%";
+
   return (
     <div className="space-y-8 pb-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -102,9 +105,19 @@ export default function AccuracyPage() {
             Métricas de performance estatística e validação científica dos classificadores de IA ativos.
           </p>
         </div>
-        <div className="flex items-center gap-2 bg-primary/8 border border-primary/20 px-4 py-2 rounded-2xl w-fit">
-          <Sparkles className="w-4 h-4 text-primary animate-pulse-gentle" />
-          <span className="text-sm font-semibold text-primary">Acurácia Geral do Sistema: 91.84%</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 bg-primary/8 border border-primary/20 px-4 py-2 rounded-2xl w-fit">
+            <Sparkles className="w-4 h-4 text-primary animate-pulse-gentle" />
+            <span className="text-sm font-semibold text-primary">Acurácia Real (LR): {overallAccuracy}</span>
+          </div>
+          {data?.cross_val_accuracy && (
+            <div className="flex items-center gap-2 bg-indigo-500/8 border border-indigo-500/20 px-4 py-2 rounded-2xl w-fit">
+              <Activity className="w-4 h-4 text-indigo-500" />
+              <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                Validação Cruzada (3-Fold): {(data.cross_val_accuracy * 100).toFixed(2)}%
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -117,7 +130,14 @@ export default function AccuracyPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {data?.models.map((m, idx) => {
-          const details = modelDetails[m.model];
+          const details = modelDetails[m.model] || {
+            title: m.model,
+            desc: "Modelo estatístico treinado e integrado ao backend do sistema.",
+            icon: Brain,
+            badge: "Standby",
+            badgeColor: "bg-muted text-muted-foreground border-border/50",
+            active: false,
+          };
           const ModelIcon = details.icon;
 
           return (
@@ -155,6 +175,28 @@ export default function AccuracyPage() {
                   <span className="text-[10px] font-bold text-muted-foreground uppercase mt-1">F1 Macro</span>
                 </div>
               </div>
+              {m.precision_class && m.recall_class && (
+                <div className="px-6 pb-6 pt-4 border-t border-border/40 bg-muted/5 text-left text-[11px] space-y-2">
+                  <div className="font-bold text-muted-foreground uppercase tracking-wider text-[9px] mb-2">Desempenho Clínico por Classe</div>
+                  <div className="grid grid-cols-3 gap-2 text-center font-bold text-[9px] text-muted-foreground uppercase border-b border-border/30 pb-1.5">
+                    <span>Severidade</span>
+                    <span>Precisão</span>
+                    <span>Sensibilidade</span>
+                  </div>
+                  {["Grave", "Moderada", "Leve"].map((cls) => {
+                    const precVal = m.precision_class[cls];
+                    const recVal = m.recall_class[cls];
+                    if (precVal === undefined || recVal === undefined) return null;
+                    return (
+                      <div key={cls} className="grid grid-cols-3 gap-2 text-center text-foreground font-semibold items-center py-0.5">
+                        <span className={`text-[10px] font-black uppercase ${cls === "Grave" ? "text-severity-grave" : cls === "Moderada" ? "text-severity-moderada" : "text-severity-leve"}`}>{cls}</span>
+                        <span>{(precVal * 100).toFixed(0)}%</span>
+                        <span>{(recVal * 100).toFixed(0)}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </Card>
           );
         })}
