@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BarChart3, TrendingUp, Pill, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton, CardSkeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
+import { SeverityCard } from "@/components/ui/severity-card";
 import { useAuth } from "@/components/providers/auth-provider";
 import { api } from "@/lib/api";
+import { BarChart3 } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -18,8 +21,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  LineChart,
-  Line,
 } from "recharts";
 
 interface Stats {
@@ -28,26 +29,16 @@ interface Stats {
   moderadaCount: number;
   leveCount: number;
   topDrugs: { drug: string; count: number }[];
-  recentQueries?: Array<{
-    drug1: string;
-    drug2: string;
-    severity: string;
-    timestamp: string;
-  }>;
 }
-
-const COLORS = ["#ef4444", "#f59e0b", "#10b981"];
 
 export default function AnalyticsPage() {
   const router = useRouter();
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [stats, setStats] = useState<Stats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push("/login");
-    }
+    if (!isAuthenticated) router.push("/login");
   }, [isAuthenticated, router]);
 
   useEffect(() => {
@@ -69,20 +60,16 @@ export default function AnalyticsPage() {
       <div className="space-y-6">
         <Skeleton className="h-10 w-64" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <CardSkeleton />
-          <CardSkeleton />
-          <CardSkeleton />
-          <CardSkeleton />
+          <CardSkeleton /><CardSkeleton /><CardSkeleton /><CardSkeleton />
         </div>
       </div>
     );
   }
 
-  // Prepare chart data
   const severityData = stats ? [
-    { name: "Grave", value: stats.graveCount, color: "#ef4444", grad: "url(#severityGraveGrad)" },
-    { name: "Moderada", value: stats.moderadaCount, color: "#f59e0b", grad: "url(#severityModeradaGrad)" },
-    { name: "Leve", value: stats.leveCount, color: "#10b981", grad: "url(#severityLeveGrad)" },
+    { name: "Grave", value: stats.graveCount, color: "#ef4444" },
+    { name: "Moderada", value: stats.moderadaCount, color: "#f59e0b" },
+    { name: "Leve", value: stats.leveCount, color: "#10b981" },
   ] : [];
 
   const topDrugsData = stats?.topDrugs.slice(0, 10).map((item) => ({
@@ -92,73 +79,40 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Análises e Métricas</h1>
-        <p className="text-muted-foreground mt-1">
-          Visualize estatísticas e tendências das interações medicamentosas
-        </p>
-      </div>
+      <PageHeader
+        title="Análises e Métricas"
+        description="Visualize estatísticas e tendências das interações medicamentosas"
+      />
 
-      {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="glass-card animate-fade-in stagger-1 hover-lift">
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2 font-medium text-foreground">
-              <BarChart3 className="w-4 h-4 text-primary" />
-              Total de Consultas
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <CardTitle className="text-4xl font-extrabold text-foreground">{stats?.totalInteractions || 0}</CardTitle>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-card border-t-2 border-t-severity-grave animate-fade-in stagger-2 hover-lift relative overflow-hidden">
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2 font-medium text-foreground">
-              <span className="w-2 h-2 rounded-full bg-severity-grave animate-pulse-gentle" />
-              Interações Graves
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <CardTitle className="text-4xl font-extrabold text-foreground">
-              {stats?.graveCount || 0}
-            </CardTitle>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-card border-t-2 border-t-severity-moderada animate-fade-in stagger-3 hover-lift relative overflow-hidden">
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2 font-medium text-foreground">
-              <span className="w-2 h-2 rounded-full bg-severity-moderada" />
-              Interações Moderadas
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <CardTitle className="text-4xl font-extrabold text-foreground">
-              {stats?.moderadaCount || 0}
-            </CardTitle>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-card border-t-2 border-t-severity-leve animate-fade-in stagger-4 hover-lift relative overflow-hidden">
-          <CardHeader className="pb-2">
-            <CardDescription className="flex items-center gap-2 font-medium text-foreground">
-              <span className="w-2 h-2 rounded-full bg-severity-leve" />
-              Interações Leves
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <CardTitle className="text-4xl font-extrabold text-foreground">
-              {stats?.leveCount || 0}
-            </CardTitle>
-          </CardContent>
-        </Card>
+        <StatCard
+          icon={BarChart3}
+          label="Total de Consultas"
+          value={stats?.totalInteractions || 0}
+          variant="glass"
+          className="animate-fade-in stagger-1"
+        />
+        <SeverityCard
+          severity="Grave"
+          count={stats?.graveCount || 0}
+          label="Interações Graves"
+          animate="animate-fade-in stagger-2"
+        />
+        <SeverityCard
+          severity="Moderada"
+          count={stats?.moderadaCount || 0}
+          label="Interações Moderadas"
+          animate="animate-fade-in stagger-3"
+        />
+        <SeverityCard
+          severity="Leve"
+          count={stats?.leveCount || 0}
+          label="Interações Leves"
+          animate="animate-fade-in stagger-4"
+        />
       </div>
 
-      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Severity distribution - Pie chart */}
         <Card className="glass-card animate-fade-in stagger-1">
           <CardHeader className="pb-2 border-b border-border/40 bg-muted/5">
             <CardTitle className="text-foreground font-semibold">Distribuição por Severidade</CardTitle>
@@ -170,10 +124,8 @@ export default function AnalyticsPage() {
                 <PieChart>
                   <Pie
                     data={severityData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={65}
-                    outerRadius={85}
+                    cx="50%" cy="50%"
+                    innerRadius={65} outerRadius={85}
                     paddingAngle={6}
                     dataKey="value"
                     label={({ name, percent }) => `${name} ${((percent ?? 0) * 100).toFixed(0)}%`}
@@ -189,7 +141,6 @@ export default function AnalyticsPage() {
           </CardContent>
         </Card>
 
-        {/* Top drugs - Bar chart */}
         <Card className="glass-card animate-fade-in stagger-2">
           <CardHeader className="pb-2 border-b border-border/40 bg-muted/5">
             <CardTitle className="text-foreground font-semibold">Medicamentos Mais Consultados</CardTitle>
@@ -217,7 +168,6 @@ export default function AnalyticsPage() {
         </Card>
       </div>
 
-      {/* Severity comparison - Bar chart */}
       <Card className="glass-card animate-fade-in stagger-3">
         <CardHeader className="pb-2 border-b border-border/40 bg-muted/5">
           <CardTitle className="text-foreground font-semibold">Comparação de Severidade</CardTitle>
@@ -245,9 +195,9 @@ export default function AnalyticsPage() {
                 <XAxis dataKey="name" stroke="var(--muted-foreground)" fontSize={11} />
                 <YAxis stroke="var(--muted-foreground)" fontSize={11} />
                 <Tooltip contentStyle={{ background: "rgba(255,255,255,0.9)", border: "1px solid rgba(0,0,0,0.08)", borderRadius: "12px", boxShadow: "0 10px 25px -10px rgba(0,0,0,0.05)" }} />
-                <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={32}>
+                <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={40}>
                   {severityData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.grad} />
+                    <Cell key={`bar-${index}`} fill={`url(${index === 0 ? "#severityGraveGrad" : index === 1 ? "#severityModeradaGrad" : "#severityLeveGrad"})`} />
                   ))}
                 </Bar>
               </BarChart>

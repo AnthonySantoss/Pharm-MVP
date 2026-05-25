@@ -1,6 +1,6 @@
 import type { TokenResponse, InteractionCheck, MultiInteractionCheck, HistoryEntry, Stats, ModelsCompare, User, Drug } from "@/types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
@@ -27,6 +27,7 @@ class ApiClient {
     if (typeof window !== "undefined") {
       localStorage.setItem("accessToken", accessToken);
       localStorage.setItem("refreshToken", refreshToken);
+      document.cookie = `accessToken=${accessToken}; path=/; max-age=86400; SameSite=Lax`;
     }
   }
 
@@ -36,6 +37,7 @@ class ApiClient {
     if (typeof window !== "undefined") {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
+      document.cookie = "accessToken=; path=/; max-age=0";
     }
   }
 
@@ -134,7 +136,6 @@ class ApiClient {
   }
 
   async getAllDrugs(): Promise<{ drugs: Drug[]; count: number }> {
-    console.log("[API] getAllDrugs called");
     return this.request<{ drugs: Drug[]; count: number }>("/medicamentos/all");
   }
 

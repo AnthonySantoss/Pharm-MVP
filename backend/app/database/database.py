@@ -38,6 +38,13 @@ class HistoryEntry(Base):
 # Database setup
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./pharmia.db")
 
+# Ensure parent directory exists for SQLite
+if "sqlite" in DATABASE_URL:
+    db_path = DATABASE_URL.replace("sqlite:///", "")
+    db_dir = os.path.dirname(db_path)
+    if db_dir and not os.path.exists(db_dir):
+        os.makedirs(db_dir, exist_ok=True)
+
 engine = create_engine(
     DATABASE_URL,
     connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {},

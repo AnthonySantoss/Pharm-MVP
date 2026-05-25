@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Users, Shield, User as UserIcon, Pill as PillIcon, Trash2, Edit3, AlertCircle } from "lucide-react";
+import { Users, Shield, User as UserIcon, Pill as PillIcon, Trash2, Edit3 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatCard } from "@/components/ui/stat-card";
+import { ErrorBanner } from "@/components/ui/error-banner";
 import { useAuth } from "@/components/providers/auth-provider";
 import { api } from "@/lib/api";
 import type { User } from "@/types";
@@ -90,25 +93,16 @@ export default function AdminPage() {
     }
   };
 
-  if (!isAuthenticated || user?.role !== "admin") {
-    return null;
-  }
+  if (!isAuthenticated || user?.role !== "admin") return null;
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Painel Administrativo</h1>
-        <p className="text-muted-foreground mt-1">
-          Gerencie usuários e visualize estatísticas do sistema
-        </p>
-      </div>
+      <PageHeader
+        title="Painel Administrativo"
+        description="Gerencie usuários e visualize estatísticas do sistema"
+      />
 
-      {error && (
-        <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-center gap-2">
-          <AlertCircle className="w-4 h-4" />
-          {error}
-        </div>
-      )}
+      {error && <ErrorBanner message={error} />}
 
       {isLoading ? (
         <div className="space-y-4">
@@ -120,50 +114,10 @@ export default function AdminPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  Total de Usuários
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <CardTitle className="text-3xl font-bold">{adminStats?.totalUsers || 0}</CardTitle>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-2 text-severity-grave">
-                  <Shield className="w-4 h-4" />
-                  Administradores
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <CardTitle className="text-3xl font-bold">{adminStats?.admins || 0}</CardTitle>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-2">
-                  <PillIcon className="w-4 h-4" />
-                  Farmacêuticos
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <CardTitle className="text-3xl font-bold">{adminStats?.pharmacists || 0}</CardTitle>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-2">
-                  <UserIcon className="w-4 h-4" />
-                  Pacientes
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <CardTitle className="text-3xl font-bold">{adminStats?.patients || 0}</CardTitle>
-              </CardContent>
-            </Card>
+            <StatCard icon={Users} label="Total de Usuários" value={adminStats?.totalUsers || 0} />
+            <StatCard icon={Shield} label="Administradores" value={adminStats?.admins || 0} />
+            <StatCard icon={PillIcon} label="Farmacêuticos" value={adminStats?.pharmacists || 0} />
+            <StatCard icon={UserIcon} label="Pacientes" value={adminStats?.patients || 0} />
           </div>
 
           <Card>
@@ -227,22 +181,11 @@ export default function AdminPage() {
                         <td className="py-3 px-4">
                           {editingUser !== u.id && (
                             <div className="flex items-center gap-2">
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => {
-                                  setEditingUser(u.id);
-                                  setEditRole(u.role);
-                                }}
-                              >
+                              <Button size="sm" variant="ghost" onClick={() => { setEditingUser(u.id); setEditRole(u.role); }}>
                                 <Edit3 className="w-4 h-4" />
                               </Button>
                               {u.id !== user?.id && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleDeleteUser(u.id)}
-                                >
+                                <Button size="sm" variant="ghost" onClick={() => handleDeleteUser(u.id)}>
                                   <Trash2 className="w-4 h-4 text-destructive" />
                                 </Button>
                               )}

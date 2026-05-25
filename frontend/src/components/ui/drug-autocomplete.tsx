@@ -46,7 +46,7 @@ export function DrugAutocomplete({
   }, [drugs, value]);
 
   useEffect(() => {
-    setHighlightedIndex(0);
+    queueMicrotask(() => setHighlightedIndex(0));
   }, [search]);
 
   useEffect(() => {

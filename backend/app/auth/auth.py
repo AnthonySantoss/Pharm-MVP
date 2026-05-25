@@ -1,3 +1,4 @@
+import os
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -10,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.database.database import get_db, User, verify_password
 
 # Config
-SECRET_KEY = "pharmia-secret-key-change-in-production-2024"
+SECRET_KEY = os.getenv("SECRET_KEY", "pharmia-secret-key-change-in-production-2024")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 7

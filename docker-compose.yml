@@ -6,23 +6,44 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./backend/app:/app/app:ro
-      - ./backend/requirements.txt:/app/requirements.txt:ro
       - ./data:/app/data:ro
-      - pharmia-db:/app
+      - pharmia-db:/app/db
     environment:
-      - DATABASE_URL=sqlite:///./pharmia.db
+      - DATABASE_URL=sqlite:///./db/pharmia.db
       - PYTHONUNBUFFERED=1
-    working_dir: /app
+      - SECRET_KEY=${SECRET_KEY:-pharmia-dev-secret-key-mude-em-producao}
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+    restart: unless-stopped
+    networks:
+      - pharmia-net
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - BACKEND_INTERNAL_URL=http://backend:8000
     ports:
       - "3000:3000"
-    environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000/api
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - pharmia-net
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
 
 volumes:
   pharmia-db:
+
+networks:
+  pharmia-net:
+    driver: bridge

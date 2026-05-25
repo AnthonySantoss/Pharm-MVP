@@ -11,9 +11,9 @@ const badgeVariants = cva(
         secondary: "border-transparent bg-secondary text-secondary-foreground",
         destructive: "border-transparent bg-destructive text-destructive-foreground",
         outline: "text-foreground",
-        grave: "border-transparent bg-severity-grave-light text-severity-grave",
-        moderada: "border-transparent bg-severity-moderada-light text-severity-moderada",
-        leve: "border-transparent bg-severity-leve-light text-severity-leve",
+        grave: "border-transparent bg-severity-grave/15 text-severity-grave",
+        moderada: "border-transparent bg-severity-moderada/15 text-severity-moderada",
+        leve: "border-transparent bg-severity-leve/15 text-severity-leve",
       },
     },
     defaultVariants: {
